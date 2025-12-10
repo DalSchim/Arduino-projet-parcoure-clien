@@ -5,7 +5,7 @@
 #include <ESP8266HTTPClient.h>
 #include <Servo.h>
 
-const int CLIENT_ID = 4;
+const int CLIENT_ID = 1;
 
 // SERVEUR
 const char* SSID_SERVER   = "CHAIN_SERVER";
@@ -25,7 +25,7 @@ const int LED_PIN = 2;  // GPIO2 = D4
 const int BUTTON_PIN = 5;   // D1
 const int MOTOR_PIN  = 14;  // D5
 
-const int SERVO_OPEN_ANGLE   = 90;
+const int SERVO_OPEN_ANGLE   = 190;
 const int SERVO_CLOSED_ANGLE = 0;
 const int SERVO_PULSE_MS     = 800;
 
