@@ -1,8 +1,9 @@
-// ======= CLIENT ESP8266 : PING + LED ONLINE + BOUTON + MOTEUR =======
+// ======= CLIENT ESP8266 : PING + LED ONLINE + BOUTON + SERVO SG90 =======
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
+#include <Servo.h>
 
 const int CLIENT_ID = 4;
 
@@ -20,21 +21,26 @@ IPAddress SUBNET(255,255,255,0);
 // LED ONLINE
 const int LED_PIN = 2;  // GPIO2 = D4
 
-// BOUTON + MOTEUR
+// BOUTON + SERVO
 const int BUTTON_PIN = 5;   // D1
 const int MOTOR_PIN  = 14;  // D5
 
+const int SERVO_OPEN_ANGLE   = 90;
+const int SERVO_CLOSED_ANGLE = 0;
+const int SERVO_PULSE_MS     = 800;
+
 ESP8266WebServer server(80);
+Servo servoMotor;
 
 unsigned long lastPing = 0;
 bool serverReachable = false;
 
-// ---- Moteur ----
+// ---- Moteur (servo SG90) ----
 void handleTrigger() {
-  Serial.println("TRIGGER → moteur ON");
-  digitalWrite(MOTOR_PIN, HIGH);
-  delay(800);
-  digitalWrite(MOTOR_PIN, LOW);
+  Serial.println("TRIGGER → servo à 90°");
+  servoMotor.write(SERVO_OPEN_ANGLE);
+  delay(SERVO_PULSE_MS);
+  servoMotor.write(SERVO_CLOSED_ANGLE);
   server.send(200,"text/plain","OK");
 }
 
@@ -92,9 +98,10 @@ void setup() {
 
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(MOTOR_PIN, OUTPUT);
-  digitalWrite(MOTOR_PIN, LOW);
   digitalWrite(LED_PIN, HIGH);  // LED OFF au départ
+
+  servoMotor.attach(MOTOR_PIN);
+  servoMotor.write(SERVO_CLOSED_ANGLE);
 
   // Connexion WiFi
   WiFi.mode(WIFI_STA);
