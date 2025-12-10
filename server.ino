@@ -12,8 +12,8 @@ extern "C" {
 const char* SSID_AP     = "CHAIN_SERVER";
 const char* PASSWORD_AP = "12345678";
 
-// Nombre total de clients dans la chaîne
-const int NUM_CLIENTS = 3;
+// Nombre total de clients dans la chaîne (ajustez selon votre montage)
+const int NUM_CLIENTS = 4;
 
 // LED témoin serveur (GPIO2 = D4)
 const int LED_PIN = 2;
@@ -137,6 +137,7 @@ void handleButton() {
   if (currentClient >= NUM_CLIENTS) {
     Serial.println("Dernier client atteint, fin de séquence.");
     sequenceRunning = false;
+    currentClient   = 0;
     server.send(200, "text/plain", "End of sequence");
     return;
   }
@@ -170,6 +171,18 @@ void handleStart() {
 
 
 // ============================================================================
+//                       ROUTE : /stop
+//           (arrête la séquence en cours depuis la page web)
+// ============================================================================
+void handleStop() {
+  Serial.println("\n=== ARRET SEQUENCE (depuis page web) ===");
+  sequenceRunning = false;
+  currentClient   = 0;
+  server.send(200, "text/plain", "Sequence stopped");
+}
+
+
+// ============================================================================
 //                       ROUTE : /ping (pour les clients)
 // ============================================================================
 void handlePing() {
@@ -178,6 +191,25 @@ void handlePing() {
     Serial.println(server.arg("id"));
   }
    server.send(200, "text/plain", "pong");
+}
+
+
+// ============================================================================
+//                     ROUTE : /trigger?id=N (manuel)
+//         (pour tester l'ouverture d'un client sans la séquence)
+// ============================================================================
+void handleTriggerManual() {
+  if (!server.hasArg("id")) {
+    server.send(400, "text/plain", "Missing id");
+    return;
+  }
+
+  int id = server.arg("id").toInt();
+  Serial.print("\n/TRIGGER manuel pour client ");
+  Serial.println(id);
+
+  triggerClient(id);
+  server.send(200, "text/plain", "Manual trigger sent");
 }
 
 
@@ -206,8 +238,23 @@ void handleRoot() {
   page += "<button type=\"submit\" style=\"font-size:24px; padding:10px 20px; margin-top:10px;\">Démarrer la séquence</button>";
   page += "</form>";
 
+  page += "<form action=\"/stop\" method=\"GET\" style='margin-top:10px;'>";
+  page += "<button type=\"submit\" style=\"font-size:18px; padding:8px 16px; background:#c0392b; color:white; border:none;\">Arrêter la séquence</button>";
+  page += "</form>";
+
   page += "<p style='margin-top:20px; font-size:12px; color:#666;'>"
           "Ce bouton lance la séquence à partir du client 1 (1 → 2 → 3 → ...).</p>";
+
+  // --- Déclenchement manuel des clients ---
+  page += "<h3>Déclenchement manuel des clients</h3>";
+  page += "<p>Utilisez ces boutons pour tester l'ouverture de chaque servo indépendamment de la séquence.</p>";
+
+  for (int i = 1; i <= NUM_CLIENTS; i++) {
+    page += "<form action=\"/trigger\" method=\"GET\" style='display:inline-block; margin:4px;'>";
+    page += "<input type='hidden' name='id' value='" + String(i) + "'>";
+    page += "<button type=\"submit\" style=\"padding:6px 12px; font-size:16px;\">Client " + String(i) + "</button>";
+    page += "</form>";
+  }
 
   page += "</body></html>";
 
@@ -237,8 +284,10 @@ void setup() {
 
   server.on("/",      handleRoot);
   server.on("/start", handleStart);
+  server.on("/stop",  handleStop);
   server.on("/button",handleButton);
   server.on("/ping",  handlePing);
+  server.on("/trigger", handleTriggerManual);
 
   server.begin();
   Serial.println("Serveur HTTP démarré.");
